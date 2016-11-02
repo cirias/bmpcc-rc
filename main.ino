@@ -1,50 +1,86 @@
 #include "PinChangeInterrupt.h"
 
-#define pcintThrottle 12 // A4
-#define pinThrottle A4
-#define pcintAileron 13 // A5
-#define pinAileron A5
+#define pcint_pwm_1 12 // A4
+#define pin_pwm_1 A4
+#define pcint_pwm_2 13 // A5
+#define pin_pwm_2 A5
 
-volatile int thro_pwm_value = 0;
-volatile int thro_prev_time = 0;
-volatile int aile_pwm_value = 0;
-volatile int aile_prev_time = 0;
+volatile int pwm_value_1 = 0;
+volatile int prev_time_1 = 0;
+volatile int pwm_value_2 = 0;
+volatile int prev_time_2 = 0;
 
-void throChange(void) {
-  int val = digitalRead(pinThrottle);
+int pwm_last_value_1 = 0;
+int led_last_status = HIGH;
+
+void change1(void) {
+  int val = digitalRead(pin_pwm_1);
   if (val == HIGH) {
-    thro_prev_time = micros();
+    prev_time_1 = micros();
   } else {
-    thro_pwm_value = micros() - thro_prev_time;
+    pwm_value_1 = micros() - prev_time_1;
   }
-  /* Serial.println("throChange"); */
+  /* Serial.println("change1"); */
 }
 
-void aileChange(void) {
-  int val = digitalRead(pinAileron);
+void change2(void) {
+  int val = digitalRead(pin_pwm_2);
   if (val == HIGH) {
-    aile_prev_time = micros();
+    prev_time_2 = micros();
   } else {
-    aile_pwm_value = micros() - aile_prev_time;
+    pwm_value_2 = micros() - prev_time_2;
   }
-  /* Serial.println("aileChange"); */
+  /* Serial.println("change2"); */
+}
+
+void toggle() {
+  if (led_last_status == HIGH) {
+    led_last_status = LOW;
+    digitalWrite(LED_BUILTIN, led_last_status);
+  } else {
+    led_last_status = HIGH;
+    digitalWrite(LED_BUILTIN, led_last_status);
+  }
+}
+
+void onSwitchChange(volatile int* pwm, int* last_value, void(*func)(void)) {
+  if (*pwm > 2000 || *pwm < 1000) return;
+
+  int value = (*pwm - 1000) / 333;
+
+  if (*last_value == value) {
+    return;
+  }
+
+  if (*last_value == -1) {
+    *last_value = value;
+    return;
+  }
+
+  *last_value = value;
+  func();
 }
 
 void setup() {
   // set pin to input with a pullup, led to output
-  pinMode(pcintThrottle, INPUT_PULLUP);
-  pinMode(pcintAileron, INPUT_PULLUP);
+  pinMode(pcint_pwm_1, INPUT_PULLUP);
+  pinMode(pcint_pwm_2, INPUT_PULLUP);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   // Attach the new PinChangeInterrupt and enable event function below
-  attachPCINT(pcintThrottle, throChange, CHANGE);
-  attachPCINT(pcintAileron, aileChange, CHANGE);
+  attachPCINT(pcint_pwm_1, change1, CHANGE);
+  attachPCINT(pcint_pwm_2, change2, CHANGE);
 
   Serial.begin(115200);
+  toggle();
 }
 
 void loop() {
-  Serial.print(thro_pwm_value);
-  Serial.print(" ");
-  Serial.println(aile_pwm_value);
-  delay(500);
+  /* Serial.print(pwm_value_1); */
+  /* Serial.print(" "); */
+  /* Serial.println(pwm_value_2); */
+
+  onSwitchChange(&pwm_value_1, &pwm_last_value_1, toggle);
+
+  delay(40);
 }

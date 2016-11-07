@@ -14,4 +14,6 @@ BOARD_SUB = atmega328
 
 CXXFLAGS_STD = -std=gnu++11
 
+MONITOR_BAUDRATE = 115200
+
 include ${ARDMK_DIR}/Arduino.mk

@@ -12,4 +12,6 @@ ARDUINO_LIBS = PinChangeInterrupt
 BOARD_TAG    = nano
 BOARD_SUB = atmega328
 
+CXXFLAGS_STD = -std=gnu++11
+
 include ${ARDMK_DIR}/Arduino.mk
